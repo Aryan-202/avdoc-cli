@@ -1,5 +1,7 @@
 # avdoc
 
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink.svg)](https://github.com/sponsors/Aryan-202)
+
 AI-powered documentation gatekeeper and architecture visualizer.
 
 ## Overview
