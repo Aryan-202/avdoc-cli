@@ -1,4 +1,3 @@
-// Force re-check
 use anyhow::Result;
 use avdoc::cli;
 use clap::Parser;
@@ -6,71 +5,76 @@ use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(name = "avdoc")]
-#[command(about = "AI-powered documentation gatekeeper and architecture visualizer", long_about = None)]
+#[command(about = "Vibe Coding CLI - AI powered project assistant", long_about = None)]
 #[command(version)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 enum Commands {
-    /// Lint the repository and generate a documentation score
-    Lint {
-        /// Path to the repository (defaults to current directory)
-        #[arg(short, long, default_value = ".")]
-        path: PathBuf,
-
-        /// Minimum documentation score required (0-100)
-        #[arg(short, long)]
-        min_score: Option<u8>,
-
-        /// Output format (terminal, json, markdown)
-        #[arg(short, long, default_value = "terminal")]
-        format: String,
+    /// Update or create project README with AI
+    Update {
+        #[command(subcommand)]
+        target: UpdateCommands,
     },
 
-    /// Generate architecture diagrams and update README
-    Diagram {
-        /// Path to the repository (defaults to current directory)
-        #[arg(short, long, default_value = ".")]
-        path: PathBuf,
-
-        /// Output diagram format (mermaid, ascii)
-        #[arg(short, long, default_value = "mermaid")]
-        format: String,
-
-        /// Update README.md with the diagram
-        #[arg(short, long)]
-        update_readme: bool,
-    },
-
-    /// Automatically generate missing documentation
-    Heal {
-        /// Path to the repository (defaults to current directory)
-        #[arg(short, long, default_value = ".")]
-        path: PathBuf,
-
-        /// Specific files to heal (if not specified, heals all low-scoring files)
-        #[arg(short, long)]
-        files: Option<Vec<String>>,
-
-        /// Interactive mode - ask before making changes
-        #[arg(short, long)]
-        interactive: bool,
-    },
-
-    /// Add a new LLM provider or configuration
+    /// Add documentation or LLM configuration
     Add {
         #[command(subcommand)]
         target: AddCommands,
     },
+
+    /// Generate folder structure (structure.md)
+    Make {
+        #[command(subcommand)]
+        target: MakeCommands,
+    },
+
+    /// AI-assisted coding helper (Vibe Code)
+    Vibe {
+        #[command(subcommand)]
+        target: VibeCommands,
+    },
 }
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
+pub enum UpdateCommands {
+    /// Update README.md using AI
+    Readme {
+        /// Path to the repository (defaults to current directory)
+        #[arg(short, long, default_value = ".")]
+        path: PathBuf,
+    },
+}
+
+#[derive(Parser, Debug)]
 pub enum AddCommands {
+    /// Add AI-generated documentation about the project
+    Docs {
+        /// Path to the repository (defaults to current directory)
+        #[arg(short, long, default_value = ".")]
+        path: PathBuf,
+    },
     /// Configure and chat with an LLM
     Llm,
+}
+
+#[derive(Parser, Debug)]
+pub enum MakeCommands {
+    /// Create structure.md of the project
+    Structure {
+        /// Path to the repository (defaults to current directory)
+        #[arg(short, long, default_value = ".")]
+        path: PathBuf,
+    },
+}
+
+#[derive(Parser, Debug)]
+pub enum VibeCommands {
+    /// Start interactive AI-assisted coding helper
+    Code,
 }
 
 #[tokio::main]
@@ -78,30 +82,27 @@ async fn main() -> Result<()> {
     let args = Cli::parse();
 
     match args.command {
-        Commands::Lint {
-            path,
-            min_score,
-            format,
-        } => {
-            cli::lint::run(path, min_score, format).await?;
-        }
-        Commands::Diagram {
-            path,
-            format,
-            update_readme,
-        } => {
-            cli::diagram::run(path, format, update_readme).await?;
-        }
-        Commands::Heal {
-            path,
-            files,
-            interactive,
-        } => {
-            cli::heal::run(path, files, interactive).await?;
-        }
+        Commands::Update { target } => match target {
+            UpdateCommands::Readme { path } => {
+                cli::update_readme::run(path).await?;
+            }
+        },
         Commands::Add { target } => match target {
+            AddCommands::Docs { path } => {
+                cli::add_docs::run(path).await?;
+            }
             AddCommands::Llm => {
                 cli::add::run_llm().await?;
+            }
+        },
+        Commands::Make { target } => match target {
+            MakeCommands::Structure { path } => {
+                cli::make_structure::run(path).await?;
+            }
+        },
+        Commands::Vibe { target } => match target {
+            VibeCommands::Code => {
+                cli::vibe_code::run().await?;
             }
         },
     }

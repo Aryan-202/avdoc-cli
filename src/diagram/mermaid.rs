@@ -23,7 +23,7 @@ impl MermaidGenerator {
     
     async fn generate_ai_diagram(&self, repo: &Repository, architecture: &Architecture) -> Result<String> {
         let prompt = self.build_prompt(repo, architecture);
-        self.llm_client.generate_diagram(&prompt).await
+        self.llm_client.chat_generic(&prompt).await
     }
     
     fn generate_basic_diagram(&self, architecture: &Architecture) -> String {
