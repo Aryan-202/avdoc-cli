@@ -92,7 +92,7 @@ async fn main() -> Result<()> {
                 cli::add_docs::run(path).await?;
             }
             AddCommands::Llm => {
-                cli::add::run_llm().await?;
+                cli::add_llm::run().await?;
             }
         },
         Commands::Make { target } => match target {
