@@ -1,3 +1,4 @@
+// Force re-check
 use anyhow::Result;
 use avdoc::cli;
 use clap::Parser;
@@ -58,13 +59,25 @@ enum Commands {
         #[arg(short, long)]
         interactive: bool,
     },
+
+    /// Add a new LLM provider or configuration
+    Add {
+        #[command(subcommand)]
+        target: AddCommands,
+    },
+}
+
+#[derive(Parser)]
+pub enum AddCommands {
+    /// Configure and chat with an LLM
+    Llm,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let cli = Cli::parse();
+    let args = Cli::parse();
 
-    match cli.command {
+    match args.command {
         Commands::Lint {
             path,
             min_score,
@@ -86,6 +99,11 @@ async fn main() -> Result<()> {
         } => {
             cli::heal::run(path, files, interactive).await?;
         }
+        Commands::Add { target } => match target {
+            AddCommands::Llm => {
+                cli::add::run_llm().await?;
+            }
+        },
     }
 
     Ok(())

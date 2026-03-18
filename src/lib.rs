@@ -6,3 +6,5 @@ pub mod markdown;
 pub mod models;
 pub mod parser;
 pub mod scanner;
+pub mod providers;
+pub mod config;
