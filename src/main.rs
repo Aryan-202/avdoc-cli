@@ -1,25 +1,11 @@
 mod cli;
 use avdoc::helpers;
+use avdoc::commands;
 
 use clap::Parser;
-use cli::{Cli, Commands};
+use cli::{Cli, Commands, ConfigAction};
 use owo_colors::OwoColorize;
-
-fn format_size(size: u64) -> String {
-    const KB: u64 = 1024;
-    const MB: u64 = KB * 1024;
-    const GB: u64 = MB * 1024;
-
-    if size >= GB {
-        format!("{:.2} GB", size as f64 / GB as f64)
-    } else if size >= MB {
-        format!("{:.2} MB", size as f64 / MB as f64)
-    } else if size >= KB {
-        format!("{:.2} KB", size as f64 / KB as f64)
-    } else {
-        format!("{} B", size)
-    }
-}
+use helpers::files;
 
 pub fn main() {
     let cli = Cli::parse();
@@ -63,7 +49,7 @@ pub fn main() {
 
                         let padded_name = format!("{:<width$}", display_name, width = name_col_width);
                         let padded_type = format!("{:<width$}", if file.is_dir { "Dir" } else { "File" }, width = type_col_width);
-                        let padded_size = format!("{:<width$}", if file.is_dir { "-".to_string() } else { format_size(file.size) }, width = size_col_width);
+                        let padded_size = format!("{:<width$}", if file.is_dir { "-".to_string() } else { files::format_size(file.size) }, width = size_col_width);
 
                         let final_name = if file.is_dir {
                             padded_name.blue().bold().to_string()
@@ -85,7 +71,6 @@ pub fn main() {
                 Err(e) => {
                     eprintln!("{} {}", "Failed to list directory:".red().bold(), e);
                 }
-                
             }
         },
         Commands::Init { path } => {
@@ -94,6 +79,34 @@ pub fn main() {
                 std::process::exit(1);
             }
         }
+        Commands::Config { action } => {
+            match action {
+                ConfigAction::Set { provider, model, api_key } => {
+                    if let Err(e) = commands::config::set_config(&provider, &model, &api_key) {
+                        eprintln!("{} {}", "Error:".red().bold(), e);
+                        std::process::exit(1);
+                    }
+                }
+                ConfigAction::Get { key } => {
+                    match commands::config::get_config_value(&key) {
+                        Ok(Some(value)) => println!("{}", value),
+                        Ok(None) => {
+                            eprintln!("{} Configuration key '{}' not found", "Error:".red().bold(), key);
+                            std::process::exit(1);
+                        }
+                        Err(e) => {
+                            eprintln!("{} {}", "Error:".red().bold(), e);
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                ConfigAction::List => {
+                    if let Err(e) = commands::config::list_config() {
+                        eprintln!("{} {}", "Error:".red().bold(), e);
+                        std::process::exit(1);
+                    }
+                }
+            }
+        }
     }
-    
 }
