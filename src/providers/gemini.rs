@@ -35,7 +35,6 @@ impl Provider for GeminiProvider {
         
         let client = Client::new();
         
-        // Gemini API uses a different schema
         let request_body = json!({
             "system_instruction": {
                 "parts": { "text": system }

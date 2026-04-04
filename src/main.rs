@@ -129,13 +129,9 @@ pub async fn run() -> anyhow::Result<()> {
         ProviderAction::Use { provider, model } => {
             let manager = ProviderManager::new();
             
-            // Verify provider exists
             if !manager.list_providers().contains(&provider) {
                 anyhow::bail!("Provider '{}' not found. Use 'avdoc provider list' to see available providers.", provider);
             }
-            
-            // Use dynamically provided model
-            println!("Using dynamic model: {}", model);
             
             let mut config = ProviderConfig::load()?;
             config.set_default(&provider, &model);
@@ -197,31 +193,100 @@ pub async fn run() -> anyhow::Result<()> {
     },
     
     Commands::Run { prompt, provider, model, dry_run } => {
-        let config = ProviderConfig::load()?;
-        
-        // Determine which provider/model to use
-        let (use_provider, use_model) = if let (Some(p), Some(m)) = (provider, model) {
-            (p, m)
-        } else if let Some((p, m)) = config.get_current_provider_model() {
-            (p, m)
-        } else {
-            anyhow::bail!("No provider/model specified. Set default with: avdoc provider use <provider> <model>");
-        };
-        
-        // Get API key
-        let api_key = config.get_api_key(&use_provider)
-            .ok_or_else(|| anyhow::anyhow!("No API key for {}. Set with: avdoc provider set-key {} <key>", use_provider, use_provider))?;
-        
-        // Get provider instance
-        let mut manager = ProviderManager::new();
-        let provider_instance = manager.get_provider_mut(&use_provider)
-            .ok_or_else(|| anyhow::anyhow!("Provider '{}' not found", use_provider))?;
-        
-        provider_instance.set_api_key(api_key.clone());
-        
-        println!("Using: {}/{}", use_provider, use_model);
-        println!("Planning...");
+    let global_config = commands::config::load_global_config()?;
+    
+    let use_provider = if let Some(p) = provider {
+        p
+    } else if let Some((p, _)) = global_config.providers.iter().next() {
+        p.clone()
+    } else {
+        anyhow::bail!("No provider/model specified. Set with: avdoc config set <provider> <model> <api_key>");
+    };
+    
+    let provider_data = global_config.providers.get(&use_provider)
+        .ok_or_else(|| anyhow::anyhow!("Provider '{}' not configured. Use: avdoc config set {} <model> <api_key>", use_provider, use_provider))?;
+    
+    let api_key = &provider_data.api_key;
+    let use_model = if let Some(m) = model { m } else { provider_data.model.clone() };
+    
+    if dry_run {
+        println!("DRY RUN: Sending to {}/{}", use_provider, use_model);
+        println!("Prompt: {}", prompt);
+        println!("Dry run completed successfully (no API call made).");
+        return Ok(());
     }
+    
+    let mut manager = ProviderManager::new();
+    let provider_instance = manager.get_provider_mut(&use_provider)
+        .ok_or_else(|| anyhow::anyhow!("Provider '{}' not found", use_provider))?;
+    
+    provider_instance.set_api_key(api_key.clone());
+    
+    println!("Provider initialized: {}/{}", use_provider, use_model);
+    println!("Processing request...");
+    
+    let system_prompt = "You are a helpful coding assistant. \
+If the user asks you to write or modify code, you must place the code inside a special block using the exact following format:
+
+<avdoc_file name=\"path/to/file.ext\">
+CODE_HERE
+</avdoc_file>
+
+You can create multiple files. Provide clear, working code solutions.";
+
+    match provider_instance.chat(&use_model, system_prompt, &prompt).await {
+        Ok(response) => {
+            println!("\nResponse:\n{}", response);
+            
+            // Parse the response to extract and create generated files.
+            let mut start_idx = 0;
+            while let Some(start_tag) = response[start_idx..].find("<avdoc_file name=\"") {
+                let actual_start = start_idx + start_tag;
+                let name_start = actual_start + 18; // Offset for "<avdoc_file name=\""
+                if let Some(name_end_offset) = response[name_start..].find("\">") {
+                    let actual_name_end = name_start + name_end_offset;
+                    let file_name = &response[name_start..actual_name_end];
+                    
+                    let content_start = actual_name_end + 2; // Offset for "\">"
+                    if let Some(content_end_offset) = response[content_start..].find("</avdoc_file>") {
+                        let content_end = content_start + content_end_offset;
+                        let content = &response[content_start..content_end];
+                        
+                        let content = content.trim_start_matches('\n').trim_end_matches('\n');
+                        
+                        println!("\nCreating file: {}", file_name);
+                        let path = std::path::Path::new(file_name);
+                        if let Some(parent) = path.parent() {
+                            if !parent.as_os_str().is_empty() {
+                                if let Err(e) = std::fs::create_dir_all(parent) {
+                                    eprintln!("Failed to create directories for {}: {}", file_name, e);
+                                    start_idx = content_end + 13;
+                                    continue;
+                                }
+                            }
+                        }
+                        
+                        if let Err(e) = std::fs::write(file_name, content) {
+                            eprintln!("Failed to write to file {}: {}", file_name, e);
+                        } else {
+                            println!("File {} written successfully.", file_name);
+                        }
+                        
+                        start_idx = content_end + 13; // Advance index past closing tag.
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            std::process::exit(1);
+        }
+    }
+}
     };
 
     Ok(())

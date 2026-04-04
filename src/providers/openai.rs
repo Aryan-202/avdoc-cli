@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use anyhow::Result;
 use crate::providers::traits::{Provider, ModelInfo};
 
 pub struct OpenAIProvider {
@@ -30,8 +29,41 @@ impl Provider for OpenAIProvider {
         vec![]
     }
     
-    async fn chat(&self, _model: &str, _system: &str, _user: &str) -> Result<String> {
+    async fn chat(&self, model: &str, system: &str, user: &str) -> anyhow::Result<String> {
+        let key = self.api_key.as_ref().ok_or_else(|| anyhow::anyhow!("OpenAI API key not set"))?;
         
-        todo!()
+        let client = reqwest::Client::new();
+        let request_body = serde_json::json!({
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": system
+                },
+                {
+                    "role": "user",
+                    "content": user
+                }
+            ]
+        });
+
+        let response = client.post("https://api.openai.com/v1/chat/completions")
+            .header("Authorization", format!("Bearer {}", key))
+            .header("Content-Type", "application/json")
+            .json(&request_body)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await?;
+            anyhow::bail!("OpenAI API error: {}", error_text);
+        }
+
+        let resp_json: serde_json::Value = response.json().await?;
+        if let Some(content) = resp_json["choices"][0]["message"]["content"].as_str() {
+            Ok(content.to_string())
+        } else {
+            anyhow::bail!("Invalid response format from OpenAI")
+        }
     }
 }
