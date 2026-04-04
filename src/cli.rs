@@ -27,6 +27,28 @@ pub enum Commands {
         #[command(subcommand)]
         action: ConfigAction,
     },
+
+    /// Manage AI providers
+    Provider {
+        #[command(subcommand)]
+        action: ProviderAction,
+    },
+    
+    /// List available models
+    Models {
+        #[arg(short, long)]
+        provider: Option<String>,  // filter by provider
+    },
+
+    Run {
+        prompt: String,
+        #[arg(long)]
+        provider: Option<String>,
+        #[arg(long)]
+        model: Option<String>,
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -51,4 +73,30 @@ pub enum ConfigAction {
     
     /// List all configuration
     List,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ProviderAction {
+    /// List all available providers
+    List,
+    
+    /// Set API key for a provider
+    SetKey {
+        provider: String,
+        key: String,
+    },
+    
+    /// Set default provider and model
+    Use {
+        provider: String,
+        model: String,
+    },
+    
+    /// Show current provider/model configuration
+    Show,
+    
+    /// List models for a specific provider
+    ListModels {
+        provider: String,
+    },
 }
