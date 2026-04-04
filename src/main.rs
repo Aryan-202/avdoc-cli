@@ -1,92 +1,99 @@
-use anyhow::Result;
-use avdoc::cli;
+mod cli;
+use avdoc::helpers;
+
 use clap::Parser;
-use std::path::PathBuf;
+use cli::{Cli, Commands};
+use owo_colors::OwoColorize;
 
-#[derive(Parser)]
-#[command(name = "avdoc")]
-#[command(about = "AI-powered documentation gatekeeper and architecture visualizer", long_about = None)]
-#[command(version)]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
+fn format_size(size: u64) -> String {
+    const KB: u64 = 1024;
+    const MB: u64 = KB * 1024;
+    const GB: u64 = MB * 1024;
+
+    if size >= GB {
+        format!("{:.2} GB", size as f64 / GB as f64)
+    } else if size >= MB {
+        format!("{:.2} MB", size as f64 / MB as f64)
+    } else if size >= KB {
+        format!("{:.2} KB", size as f64 / KB as f64)
+    } else {
+        format!("{} B", size)
+    }
 }
 
-#[derive(Parser)]
-enum Commands {
-    /// Lint the repository and generate a documentation score
-    Lint {
-        /// Path to the repository (defaults to current directory)
-        #[arg(short, long, default_value = ".")]
-        path: PathBuf,
-
-        /// Minimum documentation score required (0-100)
-        #[arg(short, long)]
-        min_score: Option<u8>,
-
-        /// Output format (terminal, json, markdown)
-        #[arg(short, long, default_value = "terminal")]
-        format: String,
-    },
-
-    /// Generate architecture diagrams and update README
-    Diagram {
-        /// Path to the repository (defaults to current directory)
-        #[arg(short, long, default_value = ".")]
-        path: PathBuf,
-
-        /// Output diagram format (mermaid, ascii)
-        #[arg(short, long, default_value = "mermaid")]
-        format: String,
-
-        /// Update README.md with the diagram
-        #[arg(short, long)]
-        update_readme: bool,
-    },
-
-    /// Automatically generate missing documentation
-    Heal {
-        /// Path to the repository (defaults to current directory)
-        #[arg(short, long, default_value = ".")]
-        path: PathBuf,
-
-        /// Specific files to heal (if not specified, heals all low-scoring files)
-        #[arg(short, long)]
-        files: Option<Vec<String>>,
-
-        /// Interactive mode - ask before making changes
-        #[arg(short, long)]
-        interactive: bool,
-    },
-}
-
-#[tokio::main]
-async fn main() -> Result<()> {
+pub fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Lint {
-            path,
-            min_score,
-            format,
-        } => {
-            cli::lint::run(path, min_score, format).await?;
-        }
-        Commands::Diagram {
-            path,
-            format,
-            update_readme,
-        } => {
-            cli::diagram::run(path, format, update_readme).await?;
-        }
-        Commands::Heal {
-            path,
-            files,
-            interactive,
-        } => {
-            cli::heal::run(path, files, interactive).await?;
+        Commands::Ls { path } => {
+            match helpers::files::get_files(&path) {
+                Ok(files) => {
+                    if files.is_empty() {
+                        println!("{}", "Directory is empty.".yellow());
+                        return;
+                    }
+                    let max_name_len = files.iter().map(|f| f.name.len()).max().unwrap_or(20).max(10);
+                    let name_col_width = std::cmp::min(max_name_len, 50) + 2;
+
+                    let type_col_width = 8;
+                    let size_col_width = 12;
+
+                    let header_name = format!("{:<width$}", "Name", width = name_col_width);
+                    let header_type = format!("{:<width$}", "Type", width = type_col_width);
+                    let header_size = format!("{:<width$}", "Size", width = size_col_width);
+                    
+                    println!(
+                        "{} | {} | {}",
+                        header_name.bold().underline(),
+                        header_type.bold().underline(),
+                        header_size.bold().underline()
+                    );
+                    
+                    let separator_len = name_col_width + type_col_width + size_col_width + 6;
+                    println!("{}", "-".repeat(separator_len));
+
+                    for file in files {
+                        let display_name = if file.name.len() > name_col_width - 2 {
+                            let mut truncated = file.name[..name_col_width - 5].to_string();
+                            truncated.push_str("...");
+                            truncated
+                        } else {
+                            file.name.clone()
+                        };
+
+                        let padded_name = format!("{:<width$}", display_name, width = name_col_width);
+                        let padded_type = format!("{:<width$}", if file.is_dir { "Dir" } else { "File" }, width = type_col_width);
+                        let padded_size = format!("{:<width$}", if file.is_dir { "-".to_string() } else { format_size(file.size) }, width = size_col_width);
+
+                        let final_name = if file.is_dir {
+                            padded_name.blue().bold().to_string()
+                        } else {
+                            padded_name
+                        };
+
+                        let final_type = if file.is_dir {
+                            padded_type.magenta().to_string()
+                        } else {
+                            padded_type.green().to_string()
+                        };
+
+                        let final_size = padded_size.cyan().to_string();
+
+                        println!("{} | {} | {}", final_name, final_type, final_size);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("{} {}", "Failed to list directory:".red().bold(), e);
+                }
+                
+            }
+        },
+        Commands::Init { path } => {
+            if let Err(e) = avdoc::commands::init::init(path) {
+                eprintln!("{} {}", "Error:".red().bold(), e);
+                std::process::exit(1);
+            }
         }
     }
-
-    Ok(())
+    
 }
