@@ -1,240 +1,146 @@
-# avdoc - AI-Powered Development Assistant
+# avdoc 🚀
 
-## What is avdoc?
+[![Crates.io](https://img.shields.io/crates/v/avdoc.svg)](https://crates.io/crates/avdoc)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust](https://img.shields.io/badge/rust-2021-blue.svg)](https://www.rust-lang.org)
 
-avdoc is a CLI tool that brings AI assistance directly to your terminal. Think of it as having a coding assistant that understands your project structure, can write code, fix bugs, explain complex logic, and help you build features - all from the command line.
+**avdoc** is a high-performance, AI-driven CLI companion designed for the modern developer. It bridges the gap between your terminal and powerful Large Language Models (LLMs), enabling seamless code generation, project exploration, and automated file creation directly within your workspace.
 
-## Quick Installation
+---
+
+## 📚 Documentation
+
+For deeper details on setup and architecture, please refer to our documentation guides:
+
+*   [Getting Started](./docs/getting-started.md) — Detailed installation and first setup.
+*   [Command Guide](./docs/commands.md) — Comprehensive explanation of all CLI commands.
+*   [AI Provider Setup](./docs/providers.md) — How to configure Gemini, DeepSeek, and more.
+*   [Configuration Guide](./docs/configuration.md) — Understanding global and project-level settings.
+
+---
+
+## 🏗️ Core Features
+
+- **Multi-Provider Support**: First-class integration with Gemini, DeepSeek, and more.
+- **Automated Code Generation**: Describe what you need, and `avdoc` generates the code and writes it to the correct files.
+- **Project Exploration**: Built-in file explorer with professional table formatting.
+- **Global Configuration**: Centralized management for API keys, models, and default providers.
+- **Dry-Run Capabilities**: Preview AI prompts and model selections before execution.
+
+## 🚀 Quick Installation
+
+### **Standard Installation**
+If you have Rust installed, the easiest way is via Cargo:
+```bash
+cargo install avdoc
+```
+
+### **Universal Install Scripts**
 
 **Windows (PowerShell):**
 ```powershell
 irm https://raw.githubusercontent.com/Aryan-202/avdoc/main/install.ps1 | iex
 ```
 
-**Mac/Linux:**
+**Linux/macOS:**
 ```bash
 curl -sSf https://raw.githubusercontent.com/Aryan-202/avdoc/main/install.sh | sh
 ```
 
-**Via Cargo (Rust developers):**
-```bash
-cargo install avdoc
-```
+---
 
-## First Time Setup
+## 🛠️ Getting Started
 
-1. Initialize avdoc in your project:
+### **1. Initialize Your Project**
+Create a `.avdoc` configuration directory in your project root:
 ```bash
 avdoc init
 ```
 
-2. Configure your favorite AI provider:
+### **2. Configure Your AI Provider**
+Set up your preferred provider with an API key and default model:
 ```bash
-# Set provider, model, and API key at once
-avdoc config set openai gpt-4o sk-your-key-here
+# General setup (provider, model, API key)
+avdoc config set <provider> <model> <api_key>
 
-# Or set just the API key for a provider
-avdoc provider set-key gemini YOUR_GEMINI_KEY
-
-# Set which provider/model to use by default
-avdoc provider use gemini gemini-1.5-pro
+# Example: Using DeepSeek
+avdoc config set deepseek deepseek-chat YOUR_API_KEY
 ```
 
-3. View current setup:
-```bash
-avdoc provider show
-```
-
-## Core Commands
-
-### Run AI Tasks
-The main command - just describe what you want:
-```bash
-avdoc run "create a REST API endpoint for user authentication"
-avdoc run "add error handling to src/main.rs"
-avdoc run "explain how the sorting algorithm works"
-```
-
-### Plan Before Executing
-See what avdoc will do before it does it:
-```bash
-avdoc plan "refactor the database connection code"
-```
-This shows you a step-by-step plan without making changes.
-
-### Apply a Plan
-Execute a previously generated plan:
-```bash
-avdoc apply plan.json
-```
-
-### Manage Project Context
-Tell avdoc which files to look at:
-```bash
-avdoc context add src/           # Add entire directory
-avdoc context add Cargo.toml     # Add specific file
-avdoc context list               # See current context
-avdoc context clear              # Reset context
-```
-
-### Configuration
-```bash
-avdoc config set openai <key>    # Set OpenAI API key
-avdoc config set anthropic <key> # Set Anthropic API key  
-avdoc config use openai          # Choose default provider
-avdoc config get model           # Check current model
-avdoc config list                # Show all settings
-```
-
-### History & Debugging
-```bash
-avdoc history                    # See your command history
-avdoc logs                       # View debug logs
-avdoc doctor                     # Check if everything works
-```
-
-## Real-World Examples
-
-**Build a new feature:**
-```bash
-avdoc run "add a --verbose flag to show debug output"
-```
-
-**Fix a bug:**
-```bash
-avdoc run "fix the off-by-one error in the pagination logic"
-```
-
-**Understand code:**
-```bash
-avdoc run "explain what the authentication middleware does"
-```
-
-**Generate documentation:**
-```bash
-avdoc run "write doc comments for all public functions"
-```
-
-## Advanced Usage
-
-### Interactive Mode
-Start a conversation with the AI:
-```bash
-avdoc chat
-```
-
-### Auto-apply Changes
-Skip confirmation prompts:
-```bash
-avdoc run "add unit tests" --yes
-```
-
-### Advanced Models & Providers
-avdoc now supports multiple providers including OpenAI, Gemini, Groq, DeepSeek, and OpenRouter.
-
+### **3. Manage Providers & Models**
+Explore available models and set defaults:
 ```bash
 # List available providers
 avdoc provider list
 
-# List models for a specific provider
-avdoc provider list-models groq
+# See models for a specific provider
+avdoc models --provider gemini
 
-# Run with a specific provider/model override
-avdoc run "fix this" --provider groq --model llama-3.1-70b-versatile
+# Set a default provider and model
+avdoc provider use gemini gemini-1.5-flash
 ```
 
-## CI/CD Integration
+---
 
-Use avdoc in your pipelines to enforce documentation standards:
+## 💻 Usage
 
-```yaml
-# GitHub Actions example
-- name: Check documentation quality
-  run: avdoc lint --min-score 80
-  env:
-    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-```
-
-## Supported Languages
-
-avdoc works with:
-- Rust
-- Python  
-- JavaScript/TypeScript
-- Go
-- Java
-- C/C++
-- And more coming soon
-
-## Project Structure
-
-When you run `avdoc init`, it creates:
-- `.avdoc/config.toml` - Your project settings
-- `.avdoc/history.json` - Command history
-- `.avdoc/context.json` - Files avdoc can access
-
-## Environment Variables
+### **The `run` Command**
+The heart of `avdoc`. Use natural language to generate code or documentation.
 
 ```bash
-export OPENAI_API_KEY=your-key    # OpenAI (default)
-export ANTHROPIC_API_KEY=your-key # Anthropic
-export AVDOC_MODEL=gpt-4          # Override default model
-export AVDOC_PROVIDER=openai      # Set default provider
+avdoc run "Create a new Rust module in utils/logger.rs with a colored logging function"
 ```
 
-## Uninstalling
+> [!TIP]
+> Use the `--dry-run` flag to see the prompt without making an API call:
+> `avdoc run "Refactor my main function" --dry-run`
 
-**If installed via cargo:**
+### **File Exploration**
+View your project structure with a clean, formatted output:
 ```bash
-cargo uninstall avdoc
+avdoc ls
 ```
 
-**If installed via script (Mac/Linux):**
-```bash
-rm /usr/local/bin/avdoc  # or ~/.local/bin/avdoc
-rm -rf ~/.avdoc           # Remove config files
+---
+
+## 🧠 How it Works
+
+`avdoc` uses a specialized system prompt that instructs LLMs to output code in a structured format:
+
+```xml
+<avdoc_file name="path/to/file.rs">
+// Generated code here...
+</avdoc_file>
 ```
 
-**If installed via script (Windows):**
-```powershell
-rm $env:LOCALAPPDATA\Programs\avdoc\avdoc.exe
-rm -r $env:APPDATA\avdoc
-```
+The CLI automatically parses these tags and:
+1. Creates parent directories if they don't exist.
+2. Writes the generated content to the specified file path.
+3. Provides real-time feedback in your terminal.
 
-## Troubleshooting
+---
 
-**"avdoc: command not found"**
-- Restart your terminal after installation
-- Check if the install directory is in your PATH
+## ⚙️ Configuration
 
-**"No API key found"**
-- Run `avdoc config set openai your-key-here`
-- Or set the OPENAI_API_KEY environment variable
+`avdoc` stores global settings in your home directory (`~/.avdoc/global.json`) and project-specific settings in `.avdoc/`.
 
-**"Project not initialized"**
-- Run `avdoc init` in your project root
+| Command | Description |
+|---------|-------------|
+| `config list` | Show all saved configurations |
+| `config get <key>` | Retrieve a specific setting |
+| `provider show` | Check the currently active provider and model |
+| `provider set-key <p> <k>` | Quickly update an API key |
 
-## Contributing
+---
 
-Found a bug or want a feature? Open an issue on GitHub. Pull requests welcome!
+## 📄 License
 
-## License
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
-MIT License - feel free to use this in personal or commercial projects.
+## 🤝 Contributing
 
-## Links
+Contributions are welcome! If you have ideas for new features or encounter bugs, please open an issue on our [GitHub Repository](https://github.com/Aryan-202/avdoc).
 
-- GitHub: https://github.com/Aryan-202/avdoc
-- Issues: https://github.com/Aryan-202/avdoc/issues
-- Sponsorship: https://github.com/sponsors/Aryan-202
+---
 
-## Why avdoc?
-
-Most AI coding tools are either:
-- Web-based (copy-paste back and forth)
-- IDE plugins (lock you into one editor)
-- Overly complex (dozens of commands to learn)
-
-avdoc is different - it lives in your terminal, works with any editor, and focuses on one thing: turning your natural language descriptions into actual code changes.
-
-No context switching. No copy-pasting. Just describe and go.
+Designed with ❤️ for vibecoders.
