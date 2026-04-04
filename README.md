@@ -1,199 +1,228 @@
-# avdoc
+# avdoc - AI-Powered Development Assistant
 
-[![Crates.io](https://img.shields.io/crates/v/avdoc.svg)](https://crates.io/crates/avdoc)
-[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink.svg)](https://github.com/sponsors/Aryan-202)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+## What is avdoc?
 
-AI-powered documentation gatekeeper and architecture visualizer.
+avdoc is a CLI tool that brings AI assistance directly to your terminal. Think of it as having a coding assistant that understands your project structure, can write code, fix bugs, explain complex logic, and help you build features - all from the command line.
 
-## Overview
+## Quick Installation
 
-avdoc provides tools to analyze and improve repository documentation. It can evaluate codebases to generate a documentation quality score, automatically generate missing documentation, and produce architecture diagrams.
-
-## Installation
-
-### Option 1 — cargo install (recommended for Rust users)
-
-```bash
-cargo install avdoc
-```
-
-### Option 2 — One-line install script (Mac / Linux)
-
-```bash
-curl -sSf https://raw.githubusercontent.com/Aryan-202/avdoc/main/install.sh | sh
-```
-
-### Option 3 — One-line install script (Windows PowerShell)
-
+**Windows (PowerShell):**
 ```powershell
 irm https://raw.githubusercontent.com/Aryan-202/avdoc/main/install.ps1 | iex
 ```
 
-### Option 4 — Manual download
-
-Download the pre-built binary for your platform from the [latest release](https://github.com/Aryan-202/avdoc/releases/latest):
-
-| Platform | Binary |
-|----------|--------|
-| Linux x86_64 | `avdoc-linux-x86_64` |
-| Linux ARM64 | `avdoc-linux-arm64` |
-| macOS x86_64 | `avdoc-macos-x86_64` |
-| macOS ARM64 (Apple Silicon) | `avdoc-macos-arm64` |
-| Windows x86_64 | `avdoc-windows-x86_64.exe` |
-
-### Requirements
-
-- An API key from OpenAI, Anthropic, or a compatible provider
-- Set one of the following environment variables before use:
-
+**Mac/Linux:**
 ```bash
-export OPENAI_API_KEY=your_key_here
-# or
-export ANTHROPIC_API_KEY=your_key_here
-# or
-export AVDOC_API_KEY=your_key_here
+curl -sSf https://raw.githubusercontent.com/Aryan-202/avdoc/main/install.sh | sh
 ```
 
-To use a specific model, set:
-
-```bash
-export AVDOC_MODEL=gpt-4o   # defaults to gpt-3.5-turbo
-```
-
----
-
-## Commands
-
-### `avdoc lint`
-
-Lint the repository to evaluate documentation coverage and quality.
-
-```bash
-avdoc lint [OPTIONS]
-```
-
-| Option | Description |
-|--------|-------------|
-| `--path <DIRECTORY>` | Path to the repository (defaults to current directory) |
-| `--min-score <SCORE>` | Enforce a minimum documentation score from 0 to 100 |
-| `--format <FORMAT>` | Output format: `terminal`, `json`, `markdown` |
-
-**Examples:**
-
-```bash
-# Lint current directory
-avdoc lint
-
-# Fail CI if score drops below 80
-avdoc lint --min-score 80
-
-# Output as JSON
-avdoc lint --format json
-
-# Lint a specific repo path
-avdoc lint --path ./my-project
-```
-
----
-
-### `avdoc diagram`
-
-Generate architecture diagrams and visually map the repository structure.
-
-```bash
-avdoc diagram [OPTIONS]
-```
-
-| Option | Description |
-|--------|-------------|
-| `--path <DIRECTORY>` | Path to the repository |
-| `--format <FORMAT>` | Output format: `mermaid` (default), `ascii` |
-| `--update-readme` | Automatically append the diagram to README.md |
-
-**Examples:**
-
-```bash
-# Generate a Mermaid diagram
-avdoc diagram
-
-# Generate ASCII diagram
-avdoc diagram --format ascii
-
-# Generate and append to README
-avdoc diagram --update-readme
-```
-
----
-
-### `avdoc heal`
-
-Analyze and automatically generate missing documentation for the codebase using AI.
-
-```bash
-avdoc heal [OPTIONS]
-```
-
-| Option | Description |
-|--------|-------------|
-| `--path <DIRECTORY>` | Path to the repository |
-| `--files <FILES>...` | Target specific files; if omitted, targets all low-scoring files |
-| `--interactive` | Ask for confirmation before applying each change |
-
-**Examples:**
-
-```bash
-# Heal all underdocumented files
-avdoc heal
-
-# Heal specific files
-avdoc heal --files src/main.rs src/lib.rs
-
-# Review each change before applying
-avdoc heal --interactive
-```
-
----
-
-## Updating
-
-Re-run your original install command to get the latest version. If you installed via `cargo`:
-
+**Via Cargo (Rust developers):**
 ```bash
 cargo install avdoc
 ```
 
-avdoc follows [semantic versioning](https://semver.org/): patch versions (`0.1.x`) are bug fixes, minor versions (`0.x.0`) add new features, and major versions (`x.0.0`) indicate breaking changes.
+## First Time Setup
 
----
+1. Initialize avdoc in your project:
+```bash
+avdoc init
+```
 
-## Supported Languages
+2. Set your API key (OpenAI, Anthropic, or any compatible provider):
+```bash
+avdoc config set openai sk-your-key-here
+```
 
-avdoc currently parses and scores documentation for:
+3. You're ready to go!
 
-- Rust
-- Python
-- JavaScript / TypeScript
-- Go
-- Java
-- C / C++
+## Core Commands
 
----
+### Run AI Tasks
+The main command - just describe what you want:
+```bash
+avdoc run "create a REST API endpoint for user authentication"
+avdoc run "add error handling to src/main.rs"
+avdoc run "explain how the sorting algorithm works"
+```
 
-## CI Integration
+### Plan Before Executing
+See what avdoc will do before it does it:
+```bash
+avdoc plan "refactor the database connection code"
+```
+This shows you a step-by-step plan without making changes.
 
-You can use avdoc as a documentation gate in CI pipelines. It exits with a non-zero code if the score falls below the minimum:
+### Apply a Plan
+Execute a previously generated plan:
+```bash
+avdoc apply plan.json
+```
+
+### Manage Project Context
+Tell avdoc which files to look at:
+```bash
+avdoc context add src/           # Add entire directory
+avdoc context add Cargo.toml     # Add specific file
+avdoc context list               # See current context
+avdoc context clear              # Reset context
+```
+
+### Configuration
+```bash
+avdoc config set openai <key>    # Set OpenAI API key
+avdoc config set anthropic <key> # Set Anthropic API key  
+avdoc config use openai          # Choose default provider
+avdoc config get model           # Check current model
+avdoc config list                # Show all settings
+```
+
+### History & Debugging
+```bash
+avdoc history                    # See your command history
+avdoc logs                       # View debug logs
+avdoc doctor                     # Check if everything works
+```
+
+## Real-World Examples
+
+**Build a new feature:**
+```bash
+avdoc run "add a --verbose flag to show debug output"
+```
+
+**Fix a bug:**
+```bash
+avdoc run "fix the off-by-one error in the pagination logic"
+```
+
+**Understand code:**
+```bash
+avdoc run "explain what the authentication middleware does"
+```
+
+**Generate documentation:**
+```bash
+avdoc run "write doc comments for all public functions"
+```
+
+## Advanced Usage
+
+### Interactive Mode
+Start a conversation with the AI:
+```bash
+avdoc chat
+```
+
+### Auto-apply Changes
+Skip confirmation prompts:
+```bash
+avdoc run "add unit tests" --yes
+```
+
+### Dry Run
+Preview changes without applying:
+```bash
+avdoc run "refactor the config parser" --dry-run
+```
+
+### Specify Model
+```bash
+avdoc run "complex refactoring" --model gpt-4
+avdoc run "simple fix" --model gpt-3.5-turbo
+```
+
+## CI/CD Integration
+
+Use avdoc in your pipelines to enforce documentation standards:
 
 ```yaml
 # GitHub Actions example
-- name: Check documentation score
-  run: avdoc lint --min-score 70
+- name: Check documentation quality
+  run: avdoc lint --min-score 80
   env:
     OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```
 
----
+## Supported Languages
+
+avdoc works with:
+- Rust
+- Python  
+- JavaScript/TypeScript
+- Go
+- Java
+- C/C++
+- And more coming soon
+
+## Project Structure
+
+When you run `avdoc init`, it creates:
+- `.avdoc/config.toml` - Your project settings
+- `.avdoc/history.json` - Command history
+- `.avdoc/context.json` - Files avdoc can access
+
+## Environment Variables
+
+```bash
+export OPENAI_API_KEY=your-key    # OpenAI (default)
+export ANTHROPIC_API_KEY=your-key # Anthropic
+export AVDOC_MODEL=gpt-4          # Override default model
+export AVDOC_PROVIDER=openai      # Set default provider
+```
+
+## Uninstalling
+
+**If installed via cargo:**
+```bash
+cargo uninstall avdoc
+```
+
+**If installed via script (Mac/Linux):**
+```bash
+rm /usr/local/bin/avdoc  # or ~/.local/bin/avdoc
+rm -rf ~/.avdoc           # Remove config files
+```
+
+**If installed via script (Windows):**
+```powershell
+rm $env:LOCALAPPDATA\Programs\avdoc\avdoc.exe
+rm -r $env:APPDATA\avdoc
+```
+
+## Troubleshooting
+
+**"avdoc: command not found"**
+- Restart your terminal after installation
+- Check if the install directory is in your PATH
+
+**"No API key found"**
+- Run `avdoc config set openai your-key-here`
+- Or set the OPENAI_API_KEY environment variable
+
+**"Project not initialized"**
+- Run `avdoc init` in your project root
+
+## Contributing
+
+Found a bug or want a feature? Open an issue on GitHub. Pull requests welcome!
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License - feel free to use this in personal or commercial projects.
+
+## Links
+
+- GitHub: https://github.com/Aryan-202/avdoc
+- Issues: https://github.com/Aryan-202/avdoc/issues
+- Sponsorship: https://github.com/sponsors/Aryan-202
+
+## Why avdoc?
+
+Most AI coding tools are either:
+- Web-based (copy-paste back and forth)
+- IDE plugins (lock you into one editor)
+- Overly complex (dozens of commands to learn)
+
+avdoc is different - it lives in your terminal, works with any editor, and focuses on one thing: turning your natural language descriptions into actual code changes.
+
+No context switching. No copy-pasting. Just describe and go.
