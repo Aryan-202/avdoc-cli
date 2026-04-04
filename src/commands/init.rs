@@ -47,7 +47,6 @@ pub fn init(path: Option<PathBuf>) -> Result<()> {
 
     println!("{}", "Initializing avdoc...".cyan().bold());
 
-    // create .avdoc
     fs::create_dir_all(&avdoc_dir)
         .with_context(|| format!("failed to create {}", avdoc_dir.display()))?;
 
@@ -60,7 +59,6 @@ pub fn init(path: Option<PathBuf>) -> Result<()> {
     let mut config = AvdocConfig::default();
     config.project_name = project_name;
 
-    // detect projects
     if target_dir.join("Cargo.toml").exists() {
         config.context_dirs = vec!["src".to_string(), "Cargo.toml".to_string()];
         config.ignore_patterns.push("target".to_string());
@@ -80,7 +78,6 @@ pub fn init(path: Option<PathBuf>) -> Result<()> {
         println!("{}", "Detected Python project".green());
     }
 
-    // write config file
     let config_content = toml::to_string_pretty(&config)
         .context("Failed to serialize config")?;
 
@@ -91,14 +88,12 @@ pub fn init(path: Option<PathBuf>) -> Result<()> {
     println!("{}", format!("Created {}", config_path.display()).green());
 
 
-    // create empty context file 
     let context_file = fs::File::create(&context_path)
         .with_context(|| format!("Failed to create {}", context_path.display()))?;
 
     serde_json::to_writer_pretty(context_file, &config.context_dirs)?;
     println!("{}", format!("Created {}", context_path.display()).green());
 
-    // Create .gitignore entry
     let gitignore_path = target_dir.join(".gitignore");
     if gitignore_path.exists() {
         let mut gitignore = fs::OpenOptions::new()

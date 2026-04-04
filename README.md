@@ -28,12 +28,22 @@ cargo install avdoc
 avdoc init
 ```
 
-2. Set your API key (OpenAI, Anthropic, or any compatible provider):
+2. Configure your favorite AI provider:
 ```bash
-avdoc config set openai sk-your-key-here
+# Set provider, model, and API key at once
+avdoc config set openai gpt-4o sk-your-key-here
+
+# Or set just the API key for a provider
+avdoc provider set-key gemini YOUR_GEMINI_KEY
+
+# Set which provider/model to use by default
+avdoc provider use gemini gemini-1.5-pro
 ```
 
-3. You're ready to go!
+3. View current setup:
+```bash
+avdoc provider show
+```
 
 ## Core Commands
 
@@ -119,16 +129,18 @@ Skip confirmation prompts:
 avdoc run "add unit tests" --yes
 ```
 
-### Dry Run
-Preview changes without applying:
-```bash
-avdoc run "refactor the config parser" --dry-run
-```
+### Advanced Models & Providers
+avdoc now supports multiple providers including OpenAI, Gemini, Groq, DeepSeek, and OpenRouter.
 
-### Specify Model
 ```bash
-avdoc run "complex refactoring" --model gpt-4
-avdoc run "simple fix" --model gpt-3.5-turbo
+# List available providers
+avdoc provider list
+
+# List models for a specific provider
+avdoc provider list-models groq
+
+# Run with a specific provider/model override
+avdoc run "fix this" --provider groq --model llama-3.1-70b-versatile
 ```
 
 ## CI/CD Integration

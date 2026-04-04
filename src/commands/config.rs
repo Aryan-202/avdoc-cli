@@ -48,7 +48,6 @@ pub fn load_global_config() -> Result<GlobalConfig> {
 pub fn save_global_config(config: &GlobalConfig) -> Result<()> {
     let config_path = get_global_config_path();
     
-    // Ensure .avdoc directory exists in home
     if let Some(parent) = config_path.parent() {
         fs::create_dir_all(parent)?;
     }

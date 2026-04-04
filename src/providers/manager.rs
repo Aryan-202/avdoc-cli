@@ -17,7 +17,6 @@ impl ProviderManager {
             providers: HashMap::new(),
         };
         
-        // Register all providers
         manager.register("openai", Box::new(OpenAIProvider::new()));
         manager.register("groq", Box::new(GroqProvider::new()));
         manager.register("deepseek", Box::new(DeepseekProvider::new()));
