@@ -1,70 +1,35 @@
-use async_trait::async_trait;
-use anyhow::{Result, bail};
-use crate::providers::traits::{Provider, ModelInfo};
-use reqwest::Client;
-use serde_json::json;
+use dialoguer::{Input, Password};
 
-pub struct DeepseekProvider {
-    api_key: Option<String>,
-}
+use crate::config::provider_config::ProviderConfig;
 
-impl DeepseekProvider {
-    pub fn new() -> Self {
-        Self { api_key: None }
-    }
-}
+pub fn connect_deepseek() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = Password::new()
+        .with_prompt("Enter your DeepSeek API key")
+        .interact()?;
 
-#[async_trait]
-impl Provider for DeepseekProvider {
-    fn name(&self) -> &str {
-        "deepseek"
-    }
-    
-    fn get_api_key(&self) -> Option<String> {
-        self.api_key.clone()
-    }
-    
-    fn set_api_key(&mut self, key: String) {
-        self.api_key = Some(key);
-    }
-    
-    async fn list_models(&self) -> Vec<ModelInfo> { vec![] }
-    
-    async fn chat(&self, model: &str, system: &str, user: &str) -> Result<String> {
-        let key = self.api_key.as_ref().ok_or_else(|| anyhow::anyhow!("Deepseek API key not set"))?;
-        
-        let client = Client::new();
-        let request_body = json!({
-            "model": model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": system
-                },
-                {
-                    "role": "user",
-                    "content": user
-                }
-            ]
-        });
+    let model: String = Input::new()
+        .with_prompt("Enter the model name")
+        .default("deepseek-chat".into()) // Pressing Enter keeps this default
+        .interact_text()?;
 
-        let response = client.post("https://api.deepseek.com/chat/completions")
-            .header("Authorization", format!("Bearer {}", key))
-            .header("Content-Type", "application/json")
-            .json(&request_body)
+    tokio::runtime::Runtime::new()?.block_on(async {
+        reqwest::Client::new()
+            .get("https://api.deepseek.com/models")
+            .bearer_auth(&api_key)
             .send()
-            .await?;
+            .await?
+            .error_for_status()?;
 
-        if !response.status().is_success() {
-            let error_text = response.text().await?;
-            bail!("Deepseek API error: {}", error_text);
-        }
+        println!("Successfully authenticated! Selected model: {}", model);
+        Ok::<_, reqwest::Error>(())
+    })?;
 
-        let resp_json: serde_json::Value = response.json().await?;
-        if let Some(content) = resp_json["choices"][0]["message"]["content"].as_str() {
-            Ok(content.to_string())
-        } else {
-            bail!("Invalid response format from Deepseek")
-        }
-    }
+    let mut config = ProviderConfig::load()?;
+    config.set_api_key("deepseek", api_key);
+    config.set_default("deepseek", "deepseek-chat");
+    config.set_provider_model("deepseek", "deepseek-chat");
+    config.save()?;
+    println!("Connected to DeepSeek.");
+
+    Ok(())
 }

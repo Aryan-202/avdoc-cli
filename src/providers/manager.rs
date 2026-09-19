@@ -3,7 +3,6 @@ use anyhow::Result;
 use crate::providers::traits::{Provider, ModelInfo};
 use crate::providers::openai::OpenAIProvider;
 use crate::providers::groq::GroqProvider;
-use crate::providers::deepseek::DeepseekProvider;
 use crate::providers::gemini::GeminiProvider;
 use crate::providers::openrouter::OpenRouterProvider;
 
@@ -19,7 +18,6 @@ impl ProviderManager {
         
         manager.register("openai", Box::new(OpenAIProvider::new()));
         manager.register("groq", Box::new(GroqProvider::new()));
-        manager.register("deepseek", Box::new(DeepseekProvider::new()));
         manager.register("gemini", Box::new(GeminiProvider::new()));
         manager.register("openrouter", Box::new(OpenRouterProvider::new()));
         
