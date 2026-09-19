@@ -1,73 +1,72 @@
-use async_trait::async_trait;
-use anyhow::{Result, bail};
-use crate::providers::traits::{Provider, ModelInfo};
-use reqwest::Client;
-use serde_json::json;
+use colored::Colorize;
+use dialoguer::{Input, Password};
+use reqwest::blocking::Client;
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use reqwest::StatusCode;
 
-pub struct OpenRouterProvider {
-    api_key: Option<String>,
-}
+use crate::config::provider_config::ProviderConfig;
 
-impl OpenRouterProvider {
-    pub fn new() -> Self {
-        Self { api_key: None }
-    }
-}
+pub fn connect_openrouter() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = Password::new()
+        .with_prompt("Enter your OpenRouter API key")
+        .interact()?;
 
-#[async_trait]
-impl Provider for OpenRouterProvider {
-    fn name(&self) -> &str {
-        "openrouter"
-    }
-    
-    fn get_api_key(&self) -> Option<String> {
-        self.api_key.clone()
-    }
-    
-    fn set_api_key(&mut self, key: String) {
-        self.api_key = Some(key);
-    }
-    
-    async fn list_models(&self) -> Vec<ModelInfo> { vec![] }
-    
-    async fn chat(&self, model: &str, system: &str, user: &str) -> Result<String> {
-        let key = self.api_key.as_ref().ok_or_else(|| anyhow::anyhow!("OpenRouter API key not set"))?;
-        
-        let client = Client::new();
-        let request_body = json!({
-            "model": model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": system
-                },
-                {
-                    "role": "user",
-                    "content": user
+    let model: String = Input::new()
+        .with_prompt("Enter the model slug (e.g. meta-llama/llama-3.3-70b-instruct)")
+        .default("meta-llama/llama-3.3-70b-instruct".into())
+        .interact_text()?;
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        AUTHORIZATION,
+        HeaderValue::from_str(&format!("Bearer {api_key}"))?,
+    );
+    headers.insert(
+        "HTTP-Referer",
+        HeaderValue::from_static("https://localhost"),
+    );
+    headers.insert(
+        "X-Title",
+        HeaderValue::from_static("CLI-Client"),
+    );
+
+    // https://openrouter.ai/api/v1/auth/key directly validates key validity and limits
+    let client = Client::new();
+    let response = client
+        .get("https://openrouter.ai/api/v1/auth/key")
+        .headers(headers)
+        .send();
+
+    match response {
+        Ok(res) => {
+            if let Err(err) = res.error_for_status_ref() {
+                match err.status() {
+                    Some(StatusCode::UNAUTHORIZED) => {
+                        eprintln!("{}", "Error: Invalid OpenRouter API key.".red());
+                    }
+                    Some(status) => {
+                        eprintln!("{}", format!("Error: OpenRouter request failed with status {status}.").red());
+                    }
+                    None => {
+                        eprintln!("{}", "Error: Unexpected response from OpenRouter API.".red());
+                    }
                 }
-            ],
-            "reasoning": {
-                "enabled": true
+                return Ok(());
             }
-        });
-
-        let response = client.post("https://openrouter.ai/api/v1/chat/completions")
-            .header("Authorization", format!("Bearer {}", key))
-            .header("Content-Type", "application/json")
-            .json(&request_body)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            let error_text = response.text().await?;
-            bail!("OpenRouter API error: {}", error_text);
         }
-
-        let resp_json: serde_json::Value = response.json().await?;
-        if let Some(content) = resp_json["choices"][0]["message"]["content"].as_str() {
-            Ok(content.to_string())
-        } else {
-            bail!("Invalid response format from OpenRouter")
+        Err(_) => {
+            eprintln!("{}", "Error: Failed to reach OpenRouter servers. Please check your internet connection.".red());
+            return Ok(());
         }
     }
+
+    let mut config = ProviderConfig::load()?;
+    config.set_api_key("openrouter", api_key);
+    config.set_default("openrouter", &model);
+    config.set_provider_model("openrouter", &model);
+    config.save()?;
+
+    println!("{}", "OpenRouter connected successfully!".green().bold());
+
+    Ok(())
 }

@@ -1,70 +1,67 @@
-use async_trait::async_trait;
-use anyhow::{Result, bail};
-use crate::providers::traits::{Provider, ModelInfo};
-use reqwest::Client;
-use serde_json::json;
+use colored::Colorize;
+use dialoguer::{Input, Password};
+use reqwest::blocking::Client;
+use reqwest::StatusCode;
 
-pub struct GeminiProvider {
-    api_key: Option<String>,
-}
+use crate::config::provider_config::ProviderConfig;
 
-impl GeminiProvider {
-    pub fn new() -> Self {
-        Self { api_key: None }
-    }
-}
+pub fn connect_gemini() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = Password::new()
+        .with_prompt("Enter your Gemini API key")
+        .interact()?;
 
-#[async_trait]
-impl Provider for GeminiProvider {
-    fn name(&self) -> &str {
-        "gemini"
-    }
-    
-    fn get_api_key(&self) -> Option<String> {
-        self.api_key.clone()
-    }
-    
-    fn set_api_key(&mut self, key: String) {
-        self.api_key = Some(key);
-    }
-    
-    async fn list_models(&self) -> Vec<ModelInfo> { vec![] }
-    
-    async fn chat(&self, model: &str, system: &str, user: &str) -> Result<String> {
-        let key = self.api_key.as_ref().ok_or_else(|| anyhow::anyhow!("Gemini API key not set"))?;
-        
-        let client = Client::new();
-        
-        let request_body = json!({
-            "system_instruction": {
-                "parts": { "text": system }
-            },
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [{ "text": user }]
+    let model: String = Input::new()
+        .with_prompt("Enter the model name")
+        .default("gemini-2.0-flash".into())
+        .interact_text()?;
+
+    let model_path = if model.starts_with("models/") {
+        model.clone()
+    } else {
+        format!("models/{model}")
+    };
+
+    let client = Client::new();
+    let response = client
+        .get(format!(
+            "https://generativelanguage.googleapis.com/v1beta/{model_path}"
+        ))
+        .header("x-goog-api-key", &api_key)
+        .send();
+
+    match response {
+        Ok(res) => {
+            if let Err(err) = res.error_for_status_ref() {
+                match err.status() {
+                    Some(StatusCode::BAD_REQUEST) | Some(StatusCode::UNAUTHORIZED) => {
+                        eprintln!("{}", "Error: Invalid API key or unauthorized request.".red());
+                    }
+                    Some(StatusCode::NOT_FOUND) => {
+                        eprintln!("{}", format!("Error: Model '{model}' not found.").red());
+                    }
+                    Some(status) => {
+                        eprintln!("{}", format!("Error: Request failed with status {status}.").red());
+                    }
+                    None => {
+                        eprintln!("{}", "Error: Unexpected response from Gemini API.".red());
+                    }
                 }
-            ]
-        });
-
-        let url = format!("https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}", model, key);
-
-        let response = client.post(&url)
-            .header("Content-Type", "application/json")
-            .json(&request_body)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            let error_text = response.text().await?;
-            bail!("Gemini API error: {}", error_text);
+                return Ok(());
+            }
         }
-
-        let resp_json: serde_json::Value = response.json().await?;
-        if let Some(content) = resp_json["candidates"][0]["content"]["parts"][0]["text"].as_str() {
-            Ok(content.to_string())
-        } else {
-            bail!("Invalid response format from Gemini")
+        Err(_) => {
+            eprintln!("{}", "Error: Failed to reach Gemini servers. Please check your internet connection.".red());
+            return Ok(());
         }
     }
+
+    let mut config = ProviderConfig::load()?;
+    config.set_api_key("gemini", api_key);
+    config.set_default("gemini", &model);
+    config.set_provider_model("gemini", &model);
+    config.save()?;
+
+    println!("{}", "Gemini connected successfully!".green().bold());
+
+    Ok(())
 }

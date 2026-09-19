@@ -1,5 +1,11 @@
+use crate::providers::anthropic::connect_anthropic;
 use crate::providers::deepseek::connect_deepseek;
-use dialoguer::{theme::ColorfulTheme, Select, Confirm};
+use crate::providers::gemini::connect_gemini;
+use crate::providers::groq::connect_groq;
+use crate::providers::openai::connect_openai;
+use crate::providers::openrouter::connect_openrouter;
+
+use dialoguer::{theme::ColorfulTheme, Confirm, Select};
 use std::fs;
 
 pub fn run_init_menu() -> Result<(), Box<dyn std::error::Error>> {
@@ -56,11 +62,11 @@ fn handle_create_agent(theme: &ColorfulTheme) -> Result<(), Box<dyn std::error::
 
     match selection {
         0 => connect_deepseek()?,
-        1 => println!("gemini selected"), // TODO: Implement actual connection
-        2 => println!("groq selected"),   // TODO: Implement actual connection
-        3 => println!("openai selected"), // TODO: Implement actual connection
-        4 => println!("openrouter selected"), // TODO: Implement actual connection
-        5 => println!("anthropic selected"), // TODO: Implement actual connection
+        1 => connect_gemini()?,
+        2 => connect_groq()?,
+        3 => connect_openai()?,
+        4 => connect_openrouter()?,
+        5 => connect_anthropic()?,
         _ => unreachable!(),
     }
 

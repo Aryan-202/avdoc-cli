@@ -15,7 +15,7 @@ anyhow = "1.0.104"
 ignore = "0.4.33"
 tree-sitter = "0.27.0"
 serde = { version = "1.0.229", features = ["derive"] }
-reqwest = { version = "0.13.5", features = ["json", "stream"] }
+reqwest = { version = "0.13.5", features = ["json", "stream", "blocking"] }
 tokio = { version = "1.53.1", features = ["full"] }
 thiserror = "2.0.20"
 glob = "0.3.4"
