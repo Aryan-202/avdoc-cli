@@ -12,18 +12,12 @@ pub struct ProviderData {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Default)]
 pub struct GlobalConfig {
     #[serde(default)]
     pub providers: std::collections::HashMap<String, ProviderData>,
 }
 
-impl Default for GlobalConfig {
-    fn default() -> Self {
-        Self { 
-            providers: std::collections::HashMap::new(),
-        }
-    }
-}
 
 pub fn get_global_config_path() -> PathBuf {
     PathBuf::from(".avdoc").join("global.json")
@@ -86,11 +80,9 @@ pub fn set_config(provider: &str, model: &str, api_key: &str) -> Result<()> {
 pub fn get_config_value(key: &str) -> Result<Option<String>> {
     let config = load_global_config()?;
     
-    if key.starts_with("model.") {
-        let provider = &key[6..];
+    if let Some(provider) = key.strip_prefix("model.") {
         Ok(config.providers.get(provider).map(|d| d.model.clone()))
-    } else if key.starts_with("api_key.") {
-        let provider = &key[8..];
+    } else if let Some(provider) = key.strip_prefix("api_key.") {
         Ok(config.providers.get(provider).map(|d| d.api_key.clone()))
     } else {
         Ok(None)

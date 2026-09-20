@@ -1,12 +1,15 @@
-use crate::providers::anthropic::connect_anthropic;
+use crate::{config::provider_config::ProviderConfig, providers::anthropic::connect_anthropic};
 use crate::providers::deepseek::connect_deepseek;
 use crate::providers::gemini::connect_gemini;
 use crate::providers::groq::connect_groq;
 use crate::providers::openai::connect_openai;
 use crate::providers::openrouter::connect_openrouter;
 
+use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Confirm, Select};
 use std::fs;
+
+use crate::helpers::get_existing_agent_helper::{get_available_providers};
 
 pub fn run_init_menu() -> Result<(), Box<dyn std::error::Error>> {
     let theme = ColorfulTheme::default();
@@ -22,12 +25,14 @@ pub fn run_init_menu() -> Result<(), Box<dyn std::error::Error>> {
     let selection = Select::with_theme(&theme)
         .with_prompt("Choose an initialization option")
         .default(0)
-        .items(&main_options)
+        .items(main_options)
         .interact()?;
 
     match selection {
         0 => handle_create_agent(&theme)?,
-        1 => println!("Selecting existing agent..."),
+        1 => {
+            get_existing_agent(&theme)?;
+        }
         2 => println!("Configuring project-specific agent..."),
         3 => handle_delete_configs()?,
         4 => {
@@ -57,7 +62,7 @@ fn handle_create_agent(theme: &ColorfulTheme) -> Result<(), Box<dyn std::error::
     let selection = Select::with_theme(theme)
         .with_prompt("Select your agent provider...")
         .default(0)
-        .items(&handle_create_agent_options)
+        .items(handle_create_agent_options)
         .interact()?;
 
     match selection {
@@ -95,4 +100,45 @@ fn handle_delete_configs() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+pub fn get_existing_agent(theme: &ColorfulTheme) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    let config = match ProviderConfig::load() {
+        Ok(cfg) => cfg,
+        Err(_) => {
+            println!("{}", "No saved configurations found.".yellow());
+            return prompt_create_agent(theme);
+        }
+    };
+
+    let available = get_available_providers(&config);
+
+    if available.is_empty() {
+        println!("{}", "No configured agents found.".yellow());
+        return prompt_create_agent(theme);
+    }
+
+    if available.len() == 1 {
+        println!("✔ Auto-selected only available agent: {}", available[0]);
+        return Ok(Some(available[0].clone()));
+    }
+
+    let selection = Select::with_theme(theme)
+        .with_prompt("Select an existing agent to activate")
+        .items(&available)
+        .interact()?;
+
+    Ok(Some(available[selection].clone()))
+}
+
+fn prompt_create_agent(theme: &ColorfulTheme) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    let create = Confirm::with_theme(theme)
+        .with_prompt("Would you like to configure a new agent now?")
+        .default(true)
+        .interact()?;
+
+    if create {
+        handle_create_agent(theme)?;
+    }
+    Ok(None)
 }
