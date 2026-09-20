@@ -22,4 +22,8 @@ pub struct Cli {
 pub enum Commands {
     /// Initializes agent configuration, provider credentials, and project setup.
     Init,
+
+    Run {
+        prompt: String,
+    }
 }

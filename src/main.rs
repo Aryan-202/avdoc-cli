@@ -9,6 +9,7 @@ use clap::Parser;
 use cli::{Cli, Commands};
 
 use avdoc::commands::init::run_init_menu;
+use avdoc::commands::run::run_prompt;
 
 /// Executes the CLI application entry point.
 ///
@@ -25,6 +26,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match &cli.command {
         Commands::Init => {
             run_init_menu()?;
+        }
+        Commands::Run { prompt } => { 
+            run_prompt(prompt)?;
         }
     }
 
