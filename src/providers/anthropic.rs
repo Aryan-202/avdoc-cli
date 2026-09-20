@@ -1,3 +1,8 @@
+//! Anthropic provider integration module.
+//!
+//! Provides interactive CLI workflows to configure and authenticate
+//! with the Anthropic Claude API.
+
 use colored::Colorize;
 use dialoguer::{Input, Password};
 use reqwest::blocking::Client;
@@ -6,6 +11,25 @@ use reqwest::StatusCode;
 
 use crate::config::provider_config::ProviderConfig;
 
+/// Interactively authenticates and configures the Anthropic API provider.
+///
+/// Prompts the user via the terminal for an Anthropic API key and target model name,
+/// validates the credentials by pinging the Anthropic `/v1/models/{model}` endpoint,
+/// and persists the configuration locally upon successful verification.
+///
+/// # Returns
+///
+/// - `Ok(())` if authentication succeeds and config is saved, or if handled error
+///   messages were printed to `stderr` during validation.
+/// - `Err(Box<dyn std::error::Error>)` if an unrecoverable I/O, prompt interaction,
+///   or configuration serialization failure occurs.
+///
+/// # Errors
+///
+/// This function returns an error in the following scenarios:
+/// - Terminal user input collection fails via `dialoguer`.
+/// - The API key contains characters invalid for an HTTP header value.
+/// - Loading or saving [`ProviderConfig`] fails on the local filesystem.
 pub fn connect_anthropic() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = Password::new()
         .with_prompt("Enter your Anthropic API key")

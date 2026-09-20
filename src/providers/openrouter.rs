@@ -1,3 +1,8 @@
+//! OpenRouter provider integration module.
+//!
+//! Provides interactive terminal workflows to authenticate, validate,
+//! and persist configuration credentials for the OpenRouter API.
+
 use colored::Colorize;
 use dialoguer::{Input, Password};
 use reqwest::blocking::Client;
@@ -6,6 +11,29 @@ use reqwest::StatusCode;
 
 use crate::config::provider_config::ProviderConfig;
 
+/// Interactively authenticates and configures the OpenRouter API provider.
+///
+/// Prompts the user via the terminal for an OpenRouter API key and preferred model slug,
+/// validates the token against the `GET https://openrouter.ai/api/v1/auth/key` endpoint
+/// (including standard `HTTP-Referer` and `X-Title` attribution headers), and saves
+/// the configuration to the local provider store upon success.
+///
+/// If validation fails or a network issue arises, user-facing error messages are printed
+/// to `stderr` and the function returns early without saving changes.
+///
+/// # Returns
+///
+/// - `Ok(())` if authentication succeeds and config is saved, or if handled API
+///   validation errors were reported to `stderr`.
+/// - `Err(Box<dyn std::error::Error>)` if an unrecoverable terminal I/O, header
+///   formatting, or configuration serialization error occurs.
+///
+/// # Errors
+///
+/// This function returns an error if:
+/// - User terminal input collection fails or is interrupted via [`dialoguer`].
+/// - The generated `Authorization` header value contains invalid ASCII or control characters.
+/// - Reading or writing the local [`ProviderConfig`] fails on the filesystem.
 pub fn connect_openrouter() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = Password::new()
         .with_prompt("Enter your OpenRouter API key")

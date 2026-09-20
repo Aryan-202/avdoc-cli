@@ -1,3 +1,8 @@
+//! Google Gemini provider integration module.
+//!
+//! Provides interactive terminal workflows to authenticate, validate,
+//! and persist configuration credentials for Google Generative AI (Gemini).
+
 use colored::Colorize;
 use dialoguer::{Input, Password};
 use reqwest::blocking::Client;
@@ -5,6 +10,28 @@ use reqwest::StatusCode;
 
 use crate::config::provider_config::ProviderConfig;
 
+/// Interactively authenticates and configures the Google Gemini API provider.
+///
+/// Prompts the user via the terminal for a Gemini API key and model name,
+/// verifies the key and model accessibility against the Google Generative Language API,
+/// and saves the resulting settings to the local configuration store.
+///
+/// If an API validation error or network failure occurs, user-friendly error
+/// messages are printed to `stderr` and the function exits early without mutating
+/// the local configuration.
+///
+/// # Returns
+///
+/// - `Ok(())` on successful authentication and configuration save, or when API-level
+///   validation errors were reported to standard error.
+/// - `Err(Box<dyn std::error::Error>)` if an unrecoverable terminal I/O or configuration
+///   serialization error occurs.
+///
+/// # Errors
+///
+/// This function returns an error if:
+/// - User terminal input collection fails or is interrupted via [`dialoguer`].
+/// - Loading or persisting the [`ProviderConfig`] fails on the local filesystem.
 pub fn connect_gemini() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = Password::new()
         .with_prompt("Enter your Gemini API key")
@@ -50,7 +77,11 @@ pub fn connect_gemini() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Err(_) => {
-            eprintln!("{}", "Error: Failed to reach Gemini servers. Please check your internet connection.".red());
+            eprintln!(
+                "{}",
+                "Error: Failed to reach Gemini servers. Please check your internet connection."
+                    .red()
+            );
             return Ok(());
         }
     }

@@ -1,3 +1,8 @@
+//! Groq provider integration module.
+//!
+//! Provides interactive terminal workflows to authenticate, validate,
+//! and persist configuration credentials for Groq's OpenAI-compatible API.
+
 use colored::Colorize;
 use dialoguer::{Input, Password};
 use reqwest::blocking::Client;
@@ -6,6 +11,29 @@ use reqwest::StatusCode;
 
 use crate::config::provider_config::ProviderConfig;
 
+/// Interactively authenticates and configures the Groq API provider.
+///
+/// Prompts the user via the terminal for a Groq API key and target model name,
+/// validates the credentials against Groq's `GET /openai/v1/models/{model}` endpoint,
+/// and saves the verified credentials to the local provider configuration.
+///
+/// If an API validation error or network failure occurs, user-friendly error
+/// messages are printed to `stderr` and the function exits without modifying
+/// the saved configuration.
+///
+/// # Returns
+///
+/// - `Ok(())` if authentication succeeds and config is saved, or if handled API
+///   errors were printed to `stderr`.
+/// - `Err(Box<dyn std::error::Error>)` if an unrecoverable terminal I/O, header
+///   parsing, or configuration serialization failure occurs.
+///
+/// # Errors
+///
+/// This function returns an error if:
+/// - User terminal input collection fails or is interrupted via [`dialoguer`].
+/// - The generated `Authorization` header value contains invalid ASCII or control characters.
+/// - Reading or writing the local [`ProviderConfig`] fails on the filesystem.
 pub fn connect_groq() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = Password::new()
         .with_prompt("Enter your Groq API key")
@@ -49,7 +77,11 @@ pub fn connect_groq() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Err(_) => {
-            eprintln!("{}", "Error: Failed to reach Groq servers. Please check your internet connection.".red());
+            eprintln!(
+                "{}",
+                "Error: Failed to reach Groq servers. Please check your internet connection."
+                    .red()
+            );
             return Ok(());
         }
     }
